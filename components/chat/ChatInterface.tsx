@@ -1,36 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Platform } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '../../constants/Colors';
 import Layout from '../../constants/Layout';
 import ChatMessage from '../../components/chat/ChatMessage';
 import { ChatMessageType } from '../../types/types';
-
-// Add a flag to check if voice recognition is available
-const isVoiceAvailable = Platform.OS !== 'web' && false; // Set to true when you have a dev build
-
-// Create a dummy Voice implementation for Expo Go
-const DummyVoice = {
-  start: async () => { console.log('Voice recognition not available in Expo Go'); },
-  stop: async () => { console.log('Voice recognition not available in Expo Go'); },
-  destroy: async () => { console.log('Voice recognition not available in Expo Go'); },
-  removeAllListeners: () => {},
-  onSpeechStart: (() => {}) as any,
-  onSpeechEnd: (() => {}) as any,
-  onSpeechResults: (() => {}) as any,
-  onSpeechError: (() => {}) as any,
-};
-
-// Create a more compatible conditional import approach
-let Voice = DummyVoice;
-if (isVoiceAvailable) {
-  try {
-    // Static import with type assertion to avoid dynamic import
-    Voice = require('@react-native-voice/voice').default;
-  } catch (e) {
-    console.error('Failed to import voice module:', e);
-  }
-}
+import Voice, { SpeechResultsEvent, SpeechErrorEvent } from '@react-native-voice/voice';
 
 type ChatInterfaceProps = {
   onNewThought: (content: string) => void;
@@ -40,95 +15,141 @@ const ChatInterface = ({ onNewThought }: ChatInterfaceProps) => {
   const [messages, setMessages] = useState<ChatMessageType[]>([
     { id: '1', content: 'Hi there! I\'m your AI assistant. How can I help with your thoughts today?', isUser: false }
   ]);
-  const [inputText, setInputText] = useState('');
+  const [transcript, setTranscript] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [lastActivityTimestamp, setLastActivityTimestamp] = useState<number | null>(null);
+  const [previousTranscript, setPreviousTranscript] = useState('');
+  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
 
+  // Clean up function to ensure proper teardown and setup
+  const cleanUpVoice = async () => {
+    try {
+      Voice.destroy().then(Voice.removeAllListeners);
+    } catch (err) {
+      console.error('Failed to clean up voice recognition', err);
+    }
+  };
+
+  // Setup Voice when component mounts and clean up when unmounts
   useEffect(() => {
     const setupVoice = async () => {
-      if (isVoiceAvailable) {
-        try {
-          await Voice.destroy();
-          Voice.onSpeechStart = onSpeechStart;
-          Voice.onSpeechEnd = onSpeechEnd;
-          Voice.onSpeechResults = onSpeechResults;
-          Voice.onSpeechError = onSpeechError;
-        } catch (e) {
-          console.error('Failed to initialize voice module:', e);
-        }
+      try {
+        // Clean up any existing Voice instance first
+        await cleanUpVoice();
+        
+        await Voice.isAvailable();
+        
+        Voice.onSpeechResults = (e: SpeechResultsEvent) => {
+          if (e.value && e.value.length > 0) {
+            const newTranscript = e.value[0];
+            setTranscript(newTranscript);
+            
+            // Check for activity by comparing with previous transcript
+            if (newTranscript !== previousTranscript) {
+              setLastActivityTimestamp(Date.now());
+              setPreviousTranscript(newTranscript);
+            }
+          }
+        };
+
+        Voice.onSpeechError = (e: SpeechErrorEvent) => {
+          console.error('Speech recognition error', e);
+          setIsRecording(false);
+          clearSilenceTimer();
+        };
+
+        Voice.onSpeechEnd = () => {
+          setIsRecording(false);
+          clearSilenceTimer();
+        };
+      } catch (err) {
+        console.error('Failed to setup voice recognition', err);
+        Alert.alert('Error', 'Failed to setup voice recognition. Please try again.');
       }
     };
 
     setupVoice();
+
+    // Clean up when component unmounts
     return () => {
-      if (isVoiceAvailable) {
-        Voice.destroy().then(Voice.removeAllListeners);
-      }
+      clearSilenceTimer();
+      cleanUpVoice();
     };
-  }, []);
+  }, []); // Empty dependency array to only run on mount/unmount
 
-  const onSpeechStart = () => {
-    console.log('Speech started');
-  };
-
-  const onSpeechEnd = () => {
-    setIsRecording(false);
-    console.log('Speech ended');
-  };
-
-  const onSpeechResults = (e: any) => {
-    if (e.value && e.value[0]) {
-      setInputText(e.value[0]);
+  const clearSilenceTimer = () => {
+    if (silenceTimerRef.current) {
+      clearInterval(silenceTimerRef.current);
+      silenceTimerRef.current = null;
     }
   };
 
-  const onSpeechError = (e: any) => {
-    console.error('Speech error', e);
-    setIsRecording(false);
+  const startSilenceDetection = () => {
+    // Clear any existing timer
+    clearSilenceTimer();
+    
+    // Set initial timestamp
+    setLastActivityTimestamp(Date.now());
+    
+    // Check for voice inactivity every second
+    silenceTimerRef.current = setInterval(() => {
+      if (lastActivityTimestamp && isRecording) {
+        const currentTime = Date.now();
+        const silenceDuration = currentTime - lastActivityTimestamp;
+        
+        // If silence has lasted more than 3 seconds (3000ms), stop recording
+        if (silenceDuration > 3000) {
+          stopRecording();
+        }
+      }
+    }, 1000);
   };
 
   const startRecording = async () => {
-    if (!isVoiceAvailable) {
-      alert('Voice recognition is not available in Expo Go. You need to create a development build to use this feature.');
-      return;
-    }
-    
     try {
-      await Voice.start();
+      setTranscript('');
+      setPreviousTranscript('');
+      await Voice.start('en-US');
       setIsRecording(true);
-    } catch (e) {
-      console.error(e);
+      setLastActivityTimestamp(Date.now());
+      startSilenceDetection();
+    } catch (err) {
+      console.error('Failed to start recording', err);
+      Alert.alert('Error', 'Failed to start recording. Please check your microphone permissions.');
     }
   };
 
   const stopRecording = async () => {
-    if (!isVoiceAvailable) return;
-    
     try {
+      clearSilenceTimer();
       await Voice.stop();
       setIsRecording(false);
-    } catch (e) {
-      console.error(e);
+      if (transcript.trim()) {
+        handleSend();
+      }
+    } catch (err) {
+      console.error('Failed to stop recording', err);
     }
   };
 
   const handleSend = async () => {
-    if (!inputText.trim()) return;
+    if (!transcript.trim()) return;
 
     const userMessage: ChatMessageType = {
       id: Date.now().toString(),
-      content: inputText,
+      content: transcript,
       isUser: true,
     };
 
     setMessages(prev => [...prev, userMessage]);
-    setInputText('');
+    setTranscript('');
     setIsLoading(true);
 
     // Simulate AI response
     setTimeout(() => {
-      const aiResponse = generateAIResponse(inputText);
+      const aiResponse = generateAIResponse(transcript);
       const aiMessage: ChatMessageType = {
         id: (Date.now() + 1).toString(),
         content: aiResponse,
@@ -139,7 +160,7 @@ const ChatInterface = ({ onNewThought }: ChatInterfaceProps) => {
       setIsLoading(false);
       
       // Save the thought
-      onNewThought(inputText);
+      onNewThought(transcript);
     }, 1000);
   };
 
@@ -181,31 +202,22 @@ const ChatInterface = ({ onNewThought }: ChatInterfaceProps) => {
       </ScrollView>
       
       <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          value={inputText}
-          onChangeText={setInputText}
-          placeholder="Type your thoughts..."
-          multiline
-        />
-        {isVoiceAvailable && (
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={isRecording ? stopRecording : startRecording}
-          >
-            <Ionicons 
-              name={isRecording ? "mic-off" : "mic"} 
-              size={24} 
-              color={isRecording ? Colors.primary : Colors.tertiary} 
-            />
-          </TouchableOpacity>
-        )}
+        <View style={styles.transcriptContainer}>
+          <Text style={styles.transcriptText}>
+            {transcript || (isRecording 
+              ? 'Listening...' 
+              : 'Press the microphone to start recording...')}
+          </Text>
+        </View>
         <TouchableOpacity
-          style={[styles.iconButton, styles.sendButton]}
-          onPress={handleSend}
-          disabled={!inputText.trim()}
+          style={[styles.iconButton, isRecording ? styles.recordingButton : styles.recordButton]}
+          onPress={isRecording ? stopRecording : startRecording}
         >
-          <Ionicons name="send" size={24} color={Colors.background} />
+          <Ionicons 
+            name={isRecording ? "mic" : "mic-outline"} 
+            size={24} 
+            color={Colors.background} 
+          />
         </TouchableOpacity>
       </View>
     </View>
@@ -234,20 +246,26 @@ const styles = StyleSheet.create({
     borderRadius: Layout.borderRadius,
     marginTop: Layout.spacing.small,
   },
-  input: {
+  transcriptContainer: {
     flex: 1,
     backgroundColor: Colors.background,
     borderRadius: Layout.borderRadius,
     padding: Layout.spacing.small,
-    maxHeight: 100,
+    marginRight: Layout.spacing.small,
+  },
+  transcriptText: {
+    fontSize: 16,
+    color: Colors.text,
   },
   iconButton: {
     padding: Layout.spacing.small,
-    marginLeft: Layout.spacing.small,
-  },
-  sendButton: {
-    backgroundColor: Colors.primary,
     borderRadius: 20,
+  },
+  recordButton: {
+    backgroundColor: Colors.primary,
+  },
+  recordingButton: {
+    backgroundColor: Colors.primary,
   },
 });
 

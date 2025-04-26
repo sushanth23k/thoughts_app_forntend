@@ -33,3 +33,10 @@ find . -name "._*" -type f -delete
 
 # Git commit and push command
 git add . && git commit -a -m "commit" && git push
+
+# Pre Bulid
+cd ios && pod install
+npx expo run:ios
+
+# Specify the Xcode project path
+project 'thoughtsapp.xcodeproj'
