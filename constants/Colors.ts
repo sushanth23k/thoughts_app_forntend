@@ -1,8 +1,12 @@
 export default {
-  primary: '#A0430A', // Burnt Copper
-  secondary: '#DFE8E6', // Sea Mist
-  tertiary: '#536878', // Paynes Grey
-  background: '#EAE0C8', // Pearl
-  text: '#333333',
-  lightText: '#666666',
+  primary: '#EEE5DA', // Light Almond (background)
+  text: '#262424', // Deep Charcoal
+  accent: 'rgba(38, 36, 36, 0.2)', // Charcoal with 20% opacity
+  background: '#EEE5DA', // Light Almond
+  white: '#FFFFFF',
+  black: '#000000',
+  gray: '#CCCCCC',
+  lightGray: '#F5F5F5',
+  error: '#FF3B30',
+  success: '#4CD964',
 }; 

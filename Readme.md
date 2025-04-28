@@ -40,3 +40,5 @@ npx expo run:ios
 
 # Specify the Xcode project path
 project 'thoughtsapp.xcodeproj'
+
+[Speach to Text Expo](https://github.com/jamsch/expo-speech-recognition)
