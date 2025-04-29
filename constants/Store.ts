@@ -12,6 +12,9 @@ const initialState: AppState = {
     isRecording: false,
     isPaused: false,
     frequencies: [],
+    lastFrequencyTime: 0,
+    lowFrequencyCount: 0,
+    conversationMode: 'speaking'
   },
 };
 
@@ -24,6 +27,7 @@ export const useStore = create<AppState & {
   startConversation: () => void;
   endConversation: () => void;
   setConversationState: (state: ConversationState) => void;
+  setConversationMode: (mode: 'speaking' | 'listening') => void;
   
   // Audio actions
   startRecording: () => void;
@@ -60,6 +64,10 @@ export const useStore = create<AppState & {
       currentConversation: newConversation,
       conversations: [...state.conversations, newConversation],
       conversationState: 'active',
+      audioState: {
+        ...state.audioState,
+        conversationMode: 'speaking'
+      }
     };
   }),
   
@@ -70,6 +78,15 @@ export const useStore = create<AppState & {
   setConversationState: (state: ConversationState) => set(() => ({
     conversationState: state,
   })),
+
+  setConversationMode: (mode: 'speaking' | 'listening') => set((state) => ({
+    audioState: {
+      ...state.audioState,
+      conversationMode: mode,
+      lastFrequencyTime: Date.now(),
+      lowFrequencyCount: 0
+    }
+  })),
   
   // Audio actions
   startRecording: () => set((state) => ({
@@ -77,6 +94,8 @@ export const useStore = create<AppState & {
       ...state.audioState,
       isRecording: true,
       isPaused: false,
+      lastFrequencyTime: Date.now(),
+      lowFrequencyCount: 0
     },
   })),
   
@@ -86,6 +105,8 @@ export const useStore = create<AppState & {
       isRecording: false,
       isPaused: false,
       frequencies: [],
+      lastFrequencyTime: 0,
+      lowFrequencyCount: 0
     },
   })),
   
@@ -96,12 +117,28 @@ export const useStore = create<AppState & {
     },
   })),
   
-  updateFrequencies: (frequencies: number[]) => set((state) => ({
-    audioState: {
-      ...state.audioState,
-      frequencies,
-    },
-  })),
+  updateFrequencies: (frequencies: number[]) => set((state) => {
+    const now = Date.now();
+    const avgFrequency = frequencies.reduce((a, b) => a + b, 0) / frequencies.length;
+    const isLowFrequency = avgFrequency < 30;
+    const timeSinceLastFrequency = now - state.audioState.lastFrequencyTime;
+    
+    let lowFrequencyCount = state.audioState.lowFrequencyCount;
+    if (isLowFrequency && timeSinceLastFrequency >= 1000) {
+      lowFrequencyCount += 1;
+    } else if (!isLowFrequency) {
+      lowFrequencyCount = 0;
+    }
+
+    return {
+      audioState: {
+        ...state.audioState,
+        frequencies,
+        lastFrequencyTime: now,
+        lowFrequencyCount
+      }
+    };
+  }),
   
   // Thought actions
   addThought: (content: string) => set((state) => {

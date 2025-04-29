@@ -1,4 +1,3 @@
-
 # App setup
 
 # Install Expo
@@ -16,6 +15,7 @@ npm install --global @expo/ngrok@4.1.0
 
 # Install Node Modules
 npm install
+npm audit fix --force
 
 # Run Expo
 npx expo start(press i)
@@ -38,7 +38,7 @@ git add . && git commit -a -m "commit" && git push
 cd ios && pod install
 npx expo run:ios
 
-# Specify the Xcode project path
+# Specify the Xcode project path in pod file.
 project 'thoughtsapp.xcodeproj'
 
 [Speach to Text Expo](https://github.com/jamsch/expo-speech-recognition)

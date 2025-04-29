@@ -25,6 +25,9 @@ export interface AudioState {
   isRecording: boolean;
   isPaused: boolean;
   frequencies: number[];
+  lastFrequencyTime: number;
+  lowFrequencyCount: number;
+  conversationMode: 'speaking' | 'listening';
 }
 
 export interface AppState {

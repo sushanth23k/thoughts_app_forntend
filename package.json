@@ -19,7 +19,7 @@
     "@react-native-async-storage/async-storage": "1.23.1",
     "@react-native-voice/voice": "^3.1.5",
     "@react-navigation/native": "^7.0.14",
-    "@xmldom/xmldom": "^0.9.8",
+    "@xmldom/xmldom": "^0.8.10",
     "date-fns": "^4.1.0",
     "expo": "~52.0.46",
     "expo-audio": "~0.3.5",
@@ -62,11 +62,13 @@
     "xmldom": "^0.8.10",
     "glob": "^9.3.5",
     "rimraf": "^5.0.5",
-    "@xmldom/xmldom": "^0.9.8",
+    "@xmldom/xmldom": "^0.8.10",
     "inflight": "^2.0.0",
     "abab": "^3.0.0",
     "domexception": "^5.0.0",
-    "sudo-prompt": "^9.2.1"
+    "sudo-prompt": "^9.2.1",
+    "@expo/plist": "^0.0.20",
+    "@expo/config-plugins": "^7.2.0"
   },
   "private": true,
   "activationEvents": [
