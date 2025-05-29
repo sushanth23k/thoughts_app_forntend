@@ -4,7 +4,6 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useStore } from '../constants/Store';
 import Colors from '../constants/Colors';
 import { formatDate } from '../constants/Utils';
-import BottomNavigation from './BottomNavigation';
 
 const ThoughtsScreen: React.FC = () => {
   const { thoughts } = useStore();
@@ -43,8 +42,6 @@ const ThoughtsScreen: React.FC = () => {
           />
         )}
       </View>
-      
-      <BottomNavigation />
     </SafeAreaView>
   );
 };

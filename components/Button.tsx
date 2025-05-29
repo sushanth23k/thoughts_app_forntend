@@ -1,6 +1,9 @@
 import React from 'react';
-import { Pressable, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { Pressable, Text, StyleSheet, ViewStyle, TextStyle, View } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import Colors from '../constants/Colors';
+
+type IconName = 'mic' | 'stop' | 'play-arrow' | 'pause' | 'close' | 'add' | 'arrow-back';
 
 interface ButtonProps {
   title: string;
@@ -10,6 +13,7 @@ interface ButtonProps {
   style?: ViewStyle;
   textStyle?: TextStyle;
   disabled?: boolean;
+  icon?: IconName;
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -20,6 +24,7 @@ const Button: React.FC<ButtonProps> = ({
   style,
   textStyle,
   disabled = false,
+  icon,
 }) => {
   const getButtonStyle = () => {
     switch (variant) {
@@ -47,6 +52,18 @@ const Button: React.FC<ButtonProps> = ({
     }
   };
 
+  const getIconColor = () => {
+    switch (variant) {
+      case 'primary':
+        return Colors.white;
+      case 'secondary':
+      case 'outline':
+        return Colors.text;
+      default:
+        return Colors.white;
+    }
+  };
+
   return (
     <Pressable
       style={[
@@ -59,7 +76,17 @@ const Button: React.FC<ButtonProps> = ({
       onPress={onPress}
       disabled={disabled}
     >
-      <Text style={[styles.text, getTextStyle(), textStyle]}>{title}</Text>
+      <View style={styles.buttonContent}>
+        {icon && (
+          <MaterialIcons
+            name={icon}
+            size={20}
+            color={getIconColor()}
+            style={styles.icon}
+          />
+        )}
+        <Text style={[styles.text, getTextStyle(), textStyle]}>{title}</Text>
+      </View>
     </Pressable>
   );
 };
@@ -71,6 +98,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 8,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   primaryButton: {
     backgroundColor: Colors.text,
@@ -101,6 +133,9 @@ const styles = StyleSheet.create({
   },
   outlineText: {
     color: Colors.text,
+  },
+  icon: {
+    marginRight: 8,
   },
 });
 

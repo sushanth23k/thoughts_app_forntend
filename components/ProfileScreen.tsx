@@ -4,7 +4,6 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useStore } from '../constants/Store';
 import Colors from '../constants/Colors';
-import BottomNavigation from './BottomNavigation';
 import Button from './Button';
 
 const ProfileScreen: React.FC = () => {
@@ -13,7 +12,7 @@ const ProfileScreen: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    router.replace('auth' as any);
+    router.replace('/auth' as any);
   };
 
   return (
@@ -73,8 +72,6 @@ const ProfileScreen: React.FC = () => {
           style={styles.logoutButton}
         />
       </View>
-      
-      <BottomNavigation />
     </SafeAreaView>
   );
 };

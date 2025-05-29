@@ -22,7 +22,7 @@ const AuthScreen: React.FC = () => {
 
   const handleGuestAccess = () => {
     loginAsGuest();
-    router.replace('conversation' as any);
+    router.replace('/(tabs)/conversation' as any);
   };
 
   return (

@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, FlatList, SafeAreaView } from 'react-native';
 import { useStore } from '../constants/Store';
 import Colors from '../constants/Colors';
 import { formatDate } from '../constants/Utils';
-import BottomNavigation from './BottomNavigation';
 
 const HistoryScreen: React.FC = () => {
   const { conversations } = useStore();
@@ -41,8 +40,6 @@ const HistoryScreen: React.FC = () => {
           />
         )}
       </View>
-      
-      <BottomNavigation />
     </SafeAreaView>
   );
 };
